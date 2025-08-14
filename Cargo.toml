@@ -1,0 +1,32 @@
+[package]
+name = "every-types"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+frame-support = { version = "40.1.0", optional = true, default-features = false }
+sp-std = { version = "14.0.0", default-features = false }
+codec = { version = "3.7.4", package = "parity-scale-codec", optional = true, default-features = false, features = [
+    "derive",
+    "max-encoded-len",
+] }
+scale-info = { version = "2.11.6", optional = true, default-features = false, features = [
+    "derive",
+    "serde",
+] }
+serde = { version = "1.0.201", optional = true, default-features = false, features = [
+    "derive",
+] }
+
+[features]
+default = ["std"]
+scale = ["codec", "scale-info"]
+serde = ["dep:serde"]
+storage = ["scale", "frame-support"]
+std = [
+    "sp-std/std",
+    "codec?/std",
+    "scale-info?/std",
+    "serde?/std",
+    "frame-support?/std",
+]
