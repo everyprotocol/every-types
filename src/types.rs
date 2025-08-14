@@ -182,3 +182,31 @@ impl OID {
         }
     }
 }
+
+pub fn to_fixed<const N: usize>(input: &[u8]) -> [u8; N] {
+    let mut arr = [0u8; N];
+    let len = input.len().min(N);
+    arr[..len].copy_from_slice(&input[..len]);
+    arr
+}
+
+pub fn slice_from_fixed<const N: usize>(buf: &[u8; N]) -> &[u8] {
+    let end = buf.iter().position(|&b| b == 0).unwrap_or(N);
+    &buf[..end]
+}
+
+pub fn str_from_fixed<const N: usize>(buf: &[u8; N]) -> Option<&str> {
+    sp_std::str::from_utf8(slice_from_fixed(buf)).ok()
+}
+
+pub fn str_from_fixed_unchecked<const N: usize>(buf: &[u8; N]) -> &str {
+    unsafe { sp_std::str::from_utf8_unchecked(slice_from_fixed(buf)) }
+}
+
+pub fn to_mime(input: &[u8]) -> String31 {
+    to_fixed(input)
+}
+
+pub fn to_symbol(input: &[u8]) -> String30 {
+    to_fixed(input)
+}

@@ -1,6 +1,9 @@
 use crate::types::{Arc, Bytes32, Descriptor, Facet, Matter, Token, Vec, H256, OID};
+use thiserror::Error;
 
+#[derive(Debug, Error)]
 pub enum StateError {
+    #[error("Storage item not found")]
     ValueNotFound,
 }
 
