@@ -13,18 +13,20 @@ pub type Vec<T> = sp_std::vec::Vec<T>;
 
 #[cfg(feature = "scale")]
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+use derive_more::Display;
 #[cfg(feature = "scale")]
 use scale_info::TypeInfo;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
+#[derive(Debug, Display, PartialEq, Eq, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
     feature = "scale",
     derive(Encode, Decode, TypeInfo, DecodeWithMemTracking)
 )]
 #[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
+#[display("{block}:{slot}:{tick}")]
 pub struct Time {
     pub block: u64,
     pub slot: u32,
@@ -46,7 +48,8 @@ impl From<Time> for u128 {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
+#[derive(Debug, Display, PartialEq, Eq, Clone, Default)]
+#[display("({block}, {coord})")]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
     feature = "scale",
@@ -58,7 +61,8 @@ pub struct Position {
     pub coord: u64,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
+#[derive(Debug, Display, PartialEq, Eq, Clone, Default)]
+#[display("{universe}.{set}.{id}")]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
     feature = "scale",
@@ -71,7 +75,58 @@ pub struct OID {
     pub id: u64,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
+impl OID {
+    pub fn set_oid(&self) -> OID {
+        OID {
+            universe: self.universe,
+            set: Constants::ID_SET_OF_SET,
+            id: self.set,
+        }
+    }
+
+    pub fn kind_oid(&self, kind: u64) -> OID {
+        OID {
+            universe: self.universe,
+            set: Constants::ID_SET_OF_KIND,
+            id: kind,
+        }
+    }
+
+    pub fn of_set(universe: u64, set: u64) -> OID {
+        OID {
+            universe,
+            set: Constants::ID_SET_OF_SET,
+            id: set,
+        }
+    }
+
+    pub fn of_kind(universe: u64, kind: u64) -> OID {
+        OID {
+            universe: universe,
+            set: Constants::ID_SET_OF_KIND,
+            id: kind,
+        }
+    }
+
+    pub fn of_value(universe: u64, value: u64) -> OID {
+        OID {
+            universe: universe,
+            set: Constants::ID_SET_OF_VALUE,
+            id: value,
+        }
+    }
+
+    pub fn of_unique(universe: u64, unique: u64) -> OID {
+        OID {
+            universe: universe,
+            set: Constants::ID_SET_OF_UNIQUE,
+            id: unique,
+        }
+    }
+}
+
+#[derive(Debug, Display, PartialEq, Eq, Clone, Default)]
+#[display("{set}.{id}")]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
     feature = "scale",
@@ -83,7 +138,8 @@ pub struct SID {
     pub id: u64,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
+#[derive(Debug, Display, PartialEq, Eq, Clone, Default)]
+#[display("% kind={kind}, rev={rev}, krev={krev}, srev={srev}, traits={traits:0x}")]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
     feature = "scale",
@@ -98,7 +154,8 @@ pub struct Descriptor {
     pub kind: u64,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Display, PartialEq, Clone)]
+#[display("@ {}, form={form}, blob={}B", str_from_fixed_unchecked(&mime), blob.len())]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
     feature = "scale",
@@ -123,14 +180,20 @@ impl MaxEncodedLen for Matter {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Display, PartialEq, Clone)]
+#[display(
+    "# {} std={std}, dec={decimals}, code={}, data={}",
+    str_from_fixed_unchecked(symbol),
+    short_hex(code),
+    short_hex(data)
+)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
     feature = "scale",
     derive(Encode, Decode, TypeInfo, DecodeWithMemTracking)
 )]
 #[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
-pub struct Token {
+pub struct Unique {
     pub std: u8,
     pub decimals: u8,
     pub symbol: String30,
@@ -138,7 +201,29 @@ pub struct Token {
     pub data: Bytes32,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Display, PartialEq, Clone)]
+#[display(
+    "$ {} std={std}, dec={decimals}, code={}, data={}",
+    str_from_fixed_unchecked(symbol),
+    short_hex(code),
+    short_hex(data)
+)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(
+    feature = "scale",
+    derive(Encode, Decode, TypeInfo, DecodeWithMemTracking)
+)]
+#[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
+pub struct Value {
+    pub std: u8,
+    pub decimals: u8,
+    pub symbol: String30,
+    pub code: Bytes32,
+    pub data: Bytes32,
+}
+
+#[derive(Debug, Display, PartialEq, Clone)]
+#[display("<- {rel} [{data}] -- [{kind}] {set}.{id}")]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
     feature = "scale",
@@ -153,7 +238,8 @@ pub struct Arc {
     pub id: u64,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Display, PartialEq, Clone)]
+#[display("<> {sel:08x} => 0x{}", short_hex(hash))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
     feature = "scale",
@@ -163,24 +249,6 @@ pub struct Arc {
 pub struct Facet {
     pub sel: u32,
     pub hash: Bytes32,
-}
-
-impl OID {
-    pub fn set_oid(&self) -> OID {
-        OID {
-            universe: self.universe,
-            set: Constants::ID_SET_OF_SET,
-            id: self.set,
-        }
-    }
-
-    pub fn kind_oid(&self, kind: u64) -> OID {
-        OID {
-            universe: self.universe,
-            set: Constants::ID_SET_OF_KIND,
-            id: kind,
-        }
-    }
 }
 
 pub fn to_fixed<const N: usize>(input: &[u8]) -> [u8; N] {
@@ -209,4 +277,24 @@ pub fn to_mime(input: &[u8]) -> String31 {
 
 pub fn to_symbol(input: &[u8]) -> String30 {
     to_fixed(input)
+}
+
+pub struct ShortHex<'a>(pub &'a [u8; 32]);
+
+use core::fmt;
+impl<'a> fmt::Display for ShortHex<'a> {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let h = self.0;
+        write!(
+            f,
+            "{:02x}{:02x}{:02x}...{:02x}{:02x}{:02x}",
+            h[0], h[1], h[2], h[29], h[30], h[31]
+        )
+    }
+}
+
+#[inline]
+pub fn short_hex(h: &[u8; 32]) -> ShortHex<'_> {
+    ShortHex(h)
 }
