@@ -13,6 +13,6 @@ pub trait StateReader<E> {
 
     // helpers
     fn get_kind_contract(&self, oid: &OID, rev: u32) -> Result<Matter, E>;
-    fn get_value(&self, universe: u64, index: u64, rev: u32) -> Result<Value, E>;
-    fn get_unique(&self, universe: u64, index: u64, rev: u32) -> Result<Unique, E>;
+    fn get_value(&self, tid: &OID, rev: u32) -> Result<Value, E>;
+    fn get_unique(&self, tid: &OID, rev: u32) -> Result<Unique, E>;
 }
