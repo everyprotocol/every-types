@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 pub struct Sota {
 	pub desc: Descriptor,
 	pub trev: u32,
-	pub fsum: FacetSummary,
+	pub fasum: FacetSummary,
 	pub owner: Bytes32,
 	pub pos: u128,
 	pub mtime: u128,
@@ -183,6 +183,20 @@ impl FacetSummary {
 	#[inline]
 	pub const fn new() -> Self {
 		Self { rendered: 0, total: 0, errors: 0 }
+	}
+
+	#[inline]
+	pub fn to_u32(&self) -> u32 {
+		((self.rendered as u32) << 24) | ((self.total as u32) << 16) | (self.errors as u32)
+	}
+
+	#[inline]
+	pub fn from_u32(raw: u32) -> Self {
+		Self {
+			rendered: ((raw >> 24) & 0xFF) as u8,
+			total: ((raw >> 16) & 0xFF) as u8,
+			errors: (raw & 0xFFFF) as u16,
+		}
 	}
 
 	/// Set total facets (clamped). Does not change rendered/errors.
