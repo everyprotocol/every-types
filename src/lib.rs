@@ -3,6 +3,7 @@
 
 pub mod constants;
 pub mod state;
+#[cfg(feature = "storage")]
 pub mod storage;
 pub mod traits;
 pub mod types;

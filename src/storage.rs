@@ -1,26 +1,24 @@
-#![cfg(feature = "storage")]
-
 use crate::state::{MatterKey, MatterValue, ObjectKey, ObjectValue};
 use frame_support::{
-    pallet_prelude::{OptionQuery, StorageMap},
-    traits::StorageInstance,
-    Identity,
+	pallet_prelude::{OptionQuery, StorageMap},
+	traits::StorageInstance,
+	Identity,
 };
 
 pub struct MatterStoragePrefix;
 
 impl StorageInstance for MatterStoragePrefix {
-    #[rustfmt::skip]
-    fn pallet_prefix() -> &'static str { "every" }
-    const STORAGE_PREFIX: &'static str = "Matter";
+	#[rustfmt::skip]
+	fn pallet_prefix() -> &'static str { "every" }
+	const STORAGE_PREFIX: &'static str = "Matter";
 }
 
 pub struct ObjectStoragePrefix;
 
 impl StorageInstance for ObjectStoragePrefix {
-    #[rustfmt::skip]
-    fn pallet_prefix() -> &'static str { "every" }
-    const STORAGE_PREFIX: &'static str = "Object";
+	#[rustfmt::skip]
+	fn pallet_prefix() -> &'static str { "every" }
+	const STORAGE_PREFIX: &'static str = "Object";
 }
 
 pub type Matter = StorageMap<MatterStoragePrefix, Identity, MatterKey, MatterValue, OptionQuery>;
