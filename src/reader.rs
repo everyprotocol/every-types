@@ -174,3 +174,49 @@ where
 		self._get_matter(&snap.elems[0]).map_err(StateError::from)
 	}
 }
+
+#[cfg(all(feature = "anyhow", feature = "storage"))]
+impl<T> StateReader<anyhow::Error> for T
+where
+	T: StateReader<StateError>,
+{
+	fn get_matter(&self, hash: &H256) -> Result<Matter, anyhow::Error> {
+		<T as StateReader<StateError>>::get_matter(self, hash).map_err(Into::into)
+	}
+
+	fn get_value(&self, tid: &OID, rev: u32) -> Result<Value, anyhow::Error> {
+		<T as StateReader<StateError>>::get_value(self, tid, rev).map_err(Into::into)
+	}
+
+	fn get_unique(&self, tid: &OID, rev: u32) -> Result<Unique, anyhow::Error> {
+		<T as StateReader<StateError>>::get_unique(self, tid, rev).map_err(Into::into)
+	}
+
+	fn get_descriptor(&self, oid: &OID, rev: u32) -> Result<Descriptor, anyhow::Error> {
+		<T as StateReader<StateError>>::get_descriptor(self, oid, rev).map_err(Into::into)
+	}
+
+	fn get_snapshot(
+		&self,
+		oid: &OID,
+		rev: u32,
+	) -> Result<(Descriptor, Vec<Bytes32>), anyhow::Error> {
+		<T as StateReader<StateError>>::get_snapshot(self, oid, rev).map_err(Into::into)
+	}
+
+	fn get_tails(&self, oid: &OID, rev: u32) -> Result<crate::Vec<crate::Arc>, anyhow::Error> {
+		<T as StateReader<StateError>>::get_tails(self, oid, rev).map_err(Into::into)
+	}
+
+	fn get_facets(&self, oid: &OID, rev: u32) -> Result<Vec<Facet>, anyhow::Error> {
+		<T as StateReader<StateError>>::get_facets(self, oid, rev).map_err(Into::into)
+	}
+
+	fn get_facet(&self, oid: &OID, rev: u32, sel: u32) -> Result<Matter, anyhow::Error> {
+		<T as StateReader<StateError>>::get_facet(self, oid, rev, sel).map_err(Into::into)
+	}
+
+	fn get_kind_contract(&self, oid: &OID, rev: u32) -> Result<Matter, anyhow::Error> {
+		<T as StateReader<StateError>>::get_kind_contract(self, oid, rev).map_err(Into::into)
+	}
+}

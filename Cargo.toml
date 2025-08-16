@@ -22,13 +22,14 @@ derive_more = { version = "2.0.1", default-features = false, features = [
     "display",
 ] }
 thiserror = { version = "2.0.14", default-features = false, optional = true }
-
+anyhow = { version = "1", optional = true, default-features = false }
 
 [features]
 default = ["std"]
 scale = ["codec", "scale-info"]
 serde = ["dep:serde"]
 storage = ["scale", "frame-support", "thiserror"]
+anyhow = ["dep:anyhow"]
 std = [
     "sp-std/std",
     "codec?/std",
@@ -37,4 +38,5 @@ std = [
     "frame-support?/std",
     "derive_more/std",
     "thiserror?/std",
+    "anyhow?/std",
 ]
