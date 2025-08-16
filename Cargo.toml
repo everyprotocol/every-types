@@ -21,13 +21,14 @@ serde = { version = "1.0.201", optional = true, default-features = false, featur
 derive_more = { version = "2.0.1", default-features = false, features = [
     "display",
 ] }
+thiserror = { version = "2.0.14", default-features = false, optional = true }
 
 
 [features]
 default = ["std"]
 scale = ["codec", "scale-info"]
 serde = ["dep:serde"]
-storage = ["scale", "frame-support"]
+storage = ["scale", "frame-support", "thiserror"]
 std = [
     "sp-std/std",
     "codec?/std",
@@ -35,4 +36,5 @@ std = [
     "serde?/std",
     "frame-support?/std",
     "derive_more/std",
+    "thiserror?/std",
 ]
