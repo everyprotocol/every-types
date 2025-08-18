@@ -1,5 +1,4 @@
-use crate::{Arc, Bytes32, Constants, Descriptor, Facet, Matter, H256, OID};
-type Vec<T> = sp_std::vec::Vec<T>;
+use crate::{Arc, Bytes32, Constants, Descriptor, Facet, Matter, Vec, H256, OID};
 
 #[cfg(feature = "scale")]
 use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};

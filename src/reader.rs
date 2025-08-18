@@ -1,7 +1,9 @@
+#![cfg(feature = "storage")]
+
 use crate::{
 	state::{Arcs, Facets, MatterKey, MatterValue, ObjectKey, ObjectValue, OidRev, Snapshot, Sota},
 	storage::{MatterMap, ObjectMap},
-	Bytes32, Descriptor, Facet, Matter, StateReader, Unique, Value, H256, OID,
+	Bytes32, Descriptor, Facet, Matter, StateReader, Unique, Value, Vec, H256, OID,
 };
 use codec::{Decode, Encode};
 use derive_more::Display;
@@ -39,9 +41,9 @@ impl From<ProviderError> for StateError {
 }
 
 pub trait StateProvider {
-	fn _get(&self, key: &[u8]) -> Option<Vec<u8>>;
+	fn _get(&mut self, key: &[u8]) -> Option<Vec<u8>>;
 
-	fn _get_sota(&self, oid: &OID) -> Result<Sota, ProviderError> {
+	fn _get_sota(&mut self, oid: &OID) -> Result<Sota, ProviderError> {
 		let key = ObjectKey::Sota(OidRev::new(oid, 0));
 		let raw = self._get(&ObjectMap::hashed_key_for(key)).ok_or(ProviderError::ItemNotFound)?;
 		let val = ObjectValue::decode(&mut &raw[..]).map_err(|_| ProviderError::DecodeFailed)?;
@@ -51,7 +53,7 @@ pub trait StateProvider {
 		}
 	}
 
-	fn _get_snapshot(&self, oid: &OID, rev: u32) -> Result<Snapshot, ProviderError> {
+	fn _get_snapshot(&mut self, oid: &OID, rev: u32) -> Result<Snapshot, ProviderError> {
 		let key = ObjectKey::Snapshot(OidRev::new(oid, rev));
 		let raw = self._get(&ObjectMap::hashed_key_for(key)).ok_or(ProviderError::ItemNotFound)?;
 		let val = ObjectValue::decode(&mut &raw[..]).map_err(|_| ProviderError::DecodeFailed)?;
@@ -61,7 +63,7 @@ pub trait StateProvider {
 		}
 	}
 
-	fn _get_matter(&self, hash: &H256) -> Result<Matter, ProviderError> {
+	fn _get_matter(&mut self, hash: &H256) -> Result<Matter, ProviderError> {
 		let key = MatterKey::Matter(*hash);
 		let raw = self._get(&MatterMap::hashed_key_for(key)).ok_or(ProviderError::ItemNotFound)?;
 		let val = MatterValue::decode(&mut &raw[..]).map_err(|_| ProviderError::DecodeFailed)?;
@@ -70,12 +72,12 @@ pub trait StateProvider {
 		}
 	}
 
-	fn _resolve_rev(&self, oid: &OID, rev0: u32) -> Result<u32, ProviderError> {
+	fn _resolve_rev(&mut self, oid: &OID, rev0: u32) -> Result<u32, ProviderError> {
 		let rev = if rev0 == 0 { self._get_sota(oid)?.desc.rev } else { rev0 };
 		Ok(rev)
 	}
 
-	fn _resolve_desc(&self, oid: &OID, rev0: u32) -> Result<Descriptor, ProviderError> {
+	fn _resolve_desc(&mut self, oid: &OID, rev0: u32) -> Result<Descriptor, ProviderError> {
 		let desc =
 			if rev0 == 0 { self._get_sota(oid)?.desc } else { self._get_snapshot(oid, rev0)?.desc };
 		Ok(desc)
@@ -86,11 +88,11 @@ impl<T> StateReader<StateError> for T
 where
 	T: StateProvider,
 {
-	fn get_matter(&self, hash: &H256) -> Result<Matter, StateError> {
+	fn get_matter(&mut self, hash: &H256) -> Result<Matter, StateError> {
 		self._get_matter(hash).map_err(StateError::from)
 	}
 
-	fn get_value(&self, tid: &OID, rev: u32) -> Result<Value, StateError> {
+	fn get_value(&mut self, tid: &OID, rev: u32) -> Result<Value, StateError> {
 		let rev = self._resolve_rev(tid, rev)?;
 		let snap = self._get_snapshot(tid, rev)?;
 		if snap.elems.len() != 3 {
@@ -106,7 +108,7 @@ where
 		Ok(Value { std, decimals, symbol, code, data })
 	}
 
-	fn get_unique(&self, tid: &OID, rev: u32) -> Result<Unique, StateError> {
+	fn get_unique(&mut self, tid: &OID, rev: u32) -> Result<Unique, StateError> {
 		let rev = self._resolve_rev(tid, rev)?;
 		let snap = self._get_snapshot(tid, rev)?;
 		if snap.elems.len() != 3 {
@@ -122,17 +124,21 @@ where
 		Ok(Unique { std, decimals, symbol, code, data })
 	}
 
-	fn get_descriptor(&self, oid: &OID, rev: u32) -> Result<Descriptor, StateError> {
+	fn get_descriptor(&mut self, oid: &OID, rev: u32) -> Result<Descriptor, StateError> {
 		self._resolve_desc(oid, rev).map_err(StateError::from)
 	}
 
-	fn get_snapshot(&self, oid: &OID, rev: u32) -> Result<(Descriptor, Vec<Bytes32>), StateError> {
+	fn get_snapshot(
+		&mut self,
+		oid: &OID,
+		rev: u32,
+	) -> Result<(Descriptor, Vec<Bytes32>), StateError> {
 		let rev = self._resolve_rev(oid, rev)?;
 		let snap = self._get_snapshot(oid, rev)?;
 		Ok((snap.desc, snap.elems))
 	}
 
-	fn get_tails(&self, oid: &OID, rev: u32) -> Result<crate::Vec<crate::Arc>, StateError> {
+	fn get_tails(&mut self, oid: &OID, rev: u32) -> Result<crate::Vec<crate::Arc>, StateError> {
 		let rev = self._resolve_rev(oid, rev)?;
 		let key = ObjectKey::Tails(OidRev::new(oid, rev));
 		let raw = self._get(&ObjectMap::hashed_key_for(key)).ok_or(StateError::TailsNotFound)?;
@@ -143,7 +149,7 @@ where
 		}
 	}
 
-	fn get_facets(&self, oid: &OID, rev: u32) -> Result<Vec<Facet>, StateError> {
+	fn get_facets(&mut self, oid: &OID, rev: u32) -> Result<Vec<Facet>, StateError> {
 		let rev = self._resolve_rev(oid, rev)?;
 		let key = ObjectKey::Facets(OidRev::new(oid, rev));
 		let raw = self._get(&ObjectMap::hashed_key_for(key)).ok_or(StateError::FacetsNotFound)?;
@@ -154,7 +160,7 @@ where
 		}
 	}
 
-	fn get_facet(&self, oid: &OID, rev: u32, sel: u32) -> Result<Matter, StateError> {
+	fn get_facet(&mut self, oid: &OID, rev: u32, sel: u32) -> Result<Matter, StateError> {
 		let rev = self._resolve_rev(oid, rev)?;
 		let key = ObjectKey::Facets(OidRev::new(oid, rev));
 		let raw = self._get(&ObjectMap::hashed_key_for(key)).ok_or(StateError::FacetsNotFound)?;
@@ -168,7 +174,7 @@ where
 		self._get_matter(&facet.hash).map_err(StateError::from)
 	}
 
-	fn get_kind_contract(&self, oid: &OID, rev: u32) -> Result<Matter, StateError> {
+	fn get_kind_contract(&mut self, oid: &OID, rev: u32) -> Result<Matter, StateError> {
 		let desc = self._resolve_desc(oid, rev)?;
 		let snap = self._get_snapshot(&oid.kind_oid(desc.kind), desc.krev)?;
 		self._get_matter(&snap.elems[0]).map_err(StateError::from)
@@ -180,43 +186,43 @@ impl<T> StateReader<anyhow::Error> for T
 where
 	T: StateReader<StateError>,
 {
-	fn get_matter(&self, hash: &H256) -> Result<Matter, anyhow::Error> {
+	fn get_matter(&mut self, hash: &H256) -> Result<Matter, anyhow::Error> {
 		<T as StateReader<StateError>>::get_matter(self, hash).map_err(Into::into)
 	}
 
-	fn get_value(&self, tid: &OID, rev: u32) -> Result<Value, anyhow::Error> {
+	fn get_value(&mut self, tid: &OID, rev: u32) -> Result<Value, anyhow::Error> {
 		<T as StateReader<StateError>>::get_value(self, tid, rev).map_err(Into::into)
 	}
 
-	fn get_unique(&self, tid: &OID, rev: u32) -> Result<Unique, anyhow::Error> {
+	fn get_unique(&mut self, tid: &OID, rev: u32) -> Result<Unique, anyhow::Error> {
 		<T as StateReader<StateError>>::get_unique(self, tid, rev).map_err(Into::into)
 	}
 
-	fn get_descriptor(&self, oid: &OID, rev: u32) -> Result<Descriptor, anyhow::Error> {
+	fn get_descriptor(&mut self, oid: &OID, rev: u32) -> Result<Descriptor, anyhow::Error> {
 		<T as StateReader<StateError>>::get_descriptor(self, oid, rev).map_err(Into::into)
 	}
 
 	fn get_snapshot(
-		&self,
+		&mut self,
 		oid: &OID,
 		rev: u32,
 	) -> Result<(Descriptor, Vec<Bytes32>), anyhow::Error> {
 		<T as StateReader<StateError>>::get_snapshot(self, oid, rev).map_err(Into::into)
 	}
 
-	fn get_tails(&self, oid: &OID, rev: u32) -> Result<crate::Vec<crate::Arc>, anyhow::Error> {
+	fn get_tails(&mut self, oid: &OID, rev: u32) -> Result<crate::Vec<crate::Arc>, anyhow::Error> {
 		<T as StateReader<StateError>>::get_tails(self, oid, rev).map_err(Into::into)
 	}
 
-	fn get_facets(&self, oid: &OID, rev: u32) -> Result<Vec<Facet>, anyhow::Error> {
+	fn get_facets(&mut self, oid: &OID, rev: u32) -> Result<Vec<Facet>, anyhow::Error> {
 		<T as StateReader<StateError>>::get_facets(self, oid, rev).map_err(Into::into)
 	}
 
-	fn get_facet(&self, oid: &OID, rev: u32, sel: u32) -> Result<Matter, anyhow::Error> {
+	fn get_facet(&mut self, oid: &OID, rev: u32, sel: u32) -> Result<Matter, anyhow::Error> {
 		<T as StateReader<StateError>>::get_facet(self, oid, rev, sel).map_err(Into::into)
 	}
 
-	fn get_kind_contract(&self, oid: &OID, rev: u32) -> Result<Matter, anyhow::Error> {
+	fn get_kind_contract(&mut self, oid: &OID, rev: u32) -> Result<Matter, anyhow::Error> {
 		<T as StateReader<StateError>>::get_kind_contract(self, oid, rev).map_err(Into::into)
 	}
 }

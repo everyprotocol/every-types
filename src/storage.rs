@@ -1,3 +1,5 @@
+#![cfg(feature = "storage")]
+
 use crate::state::{MatterKey, MatterValue, ObjectKey, ObjectValue};
 use frame_support::{
 	pallet_prelude::{OptionQuery, StorageMap},

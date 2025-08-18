@@ -2,10 +2,8 @@
 #![allow(unused)]
 
 pub mod constants;
-#[cfg(feature = "storage")]
 pub mod reader;
 pub mod state;
-#[cfg(feature = "storage")]
 pub mod storage;
 pub mod traits;
 pub mod types;
