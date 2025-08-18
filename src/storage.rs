@@ -10,7 +10,7 @@ pub struct MatterMapPrefix;
 
 impl StorageInstance for MatterMapPrefix {
 	#[rustfmt::skip]
-	fn pallet_prefix() -> &'static str { "every" }
+	fn pallet_prefix() -> &'static str { "Every" }
 	const STORAGE_PREFIX: &'static str = "Matter";
 }
 
@@ -18,7 +18,7 @@ pub struct ObjectMapPrefix;
 
 impl StorageInstance for ObjectMapPrefix {
 	#[rustfmt::skip]
-	fn pallet_prefix() -> &'static str { "every" }
+	fn pallet_prefix() -> &'static str { "Every" }
 	const STORAGE_PREFIX: &'static str = "Object";
 }
 
