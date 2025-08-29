@@ -110,21 +110,13 @@ pub enum ObjectValue {
 	Facets(Facets),
 }
 
-pub type UniverseKey = u64;
+pub type UniverseId = u64;
 
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "scale", derive(Encode, Decode, TypeInfo, DecodeWithMemTracking))]
 #[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
-pub struct UniverseValue {
-	pub initiator: Bytes32,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "scale", derive(Encode, Decode, TypeInfo, DecodeWithMemTracking))]
-#[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
-pub struct HeraldKey {
+pub struct UniverseHerald {
 	pub universe: u64,
 	pub herald: Bytes32,
 }
@@ -133,7 +125,40 @@ pub struct HeraldKey {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "scale", derive(Encode, Decode, TypeInfo, DecodeWithMemTracking))]
 #[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
-pub struct HeraldValue {}
+pub struct Genesis {
+	pub horizon: u128,
+	pub otime: u128,
+	pub originator: Bytes32,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "scale", derive(Encode, Decode, TypeInfo, DecodeWithMemTracking))]
+#[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
+pub struct Frontier {
+	pub furthest: u128,
+	pub frontier: u128,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "scale", derive(Encode, Decode, TypeInfo, DecodeWithMemTracking))]
+#[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
+pub enum UniverseKey {
+	Genesis(UniverseId),
+	Frontier(UniverseId),
+	Herald(UniverseHerald),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "scale", derive(Encode, Decode, TypeInfo, DecodeWithMemTracking))]
+#[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
+pub enum UniverseValue {
+	Genesis(Genesis),
+	Frontier(Frontier),
+	Herald,
+}
 
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -151,20 +176,10 @@ pub enum MatterValue {
 	Matter(Matter),
 }
 
-// #[derive(Debug, PartialEq, Clone, Encode, Decode, TypeInfo, MaxEncodedLen)]
-// pub struct SetSota {
-// 	pub owner: Bytes32,
-// 	pub updated_at: u128,          // last modified time
-// 	pub children_updated_at: u128, // last modified time of children
-// 	pub energy: u128,
-// }
-
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(
-	feature = "scale",
-	derive(Encode, Decode, TypeInfo, DecodeWithMemTracking, MaxEncodedLen)
-)]
+#[cfg_attr(feature = "scale", derive(Encode, Decode, TypeInfo, DecodeWithMemTracking))]
+#[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
 pub struct FacetSummary {
 	/// bit0==1 means "executed"; MSB==1 means "had error"
 	rendered: u8,
