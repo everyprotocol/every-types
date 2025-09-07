@@ -12,7 +12,7 @@ pub type Result<T, E> = sp_std::result::Result<T, E>;
 pub type Vec<T> = sp_std::vec::Vec<T>;
 
 #[cfg(feature = "scale")]
-use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+pub use codec::{Decode, DecodeWithMemTracking, Encode, FullCodec, FullEncode, MaxEncodedLen};
 use derive_more::Display;
 #[cfg(feature = "scale")]
 use scale_info::TypeInfo;
