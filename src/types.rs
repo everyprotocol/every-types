@@ -90,6 +90,22 @@ impl OID {
 	pub fn of_unique(universe: u64, unique: u64) -> OID {
 		OID { universe, set: Constants::ID_SET_OF_UNIQUE, id: unique }
 	}
+
+	pub fn is_meta_object(&self) -> bool {
+		self.set <= Constants::META_OBJECT_ID_MAX
+	}
+
+	pub fn is_plain_object(&self) -> bool {
+		!self.is_meta_object()
+	}
+
+	pub fn is_genesis_object(&self) -> bool {
+		self.set <= Constants::META_OBJECT_ID_MAX && self.id <= Constants::META_OBJECT_ID_MAX
+	}
+
+	pub fn is_emergent_object(&self) -> bool {
+		!self.is_genesis_object()
+	}
 }
 
 #[derive(Debug, Display, PartialEq, Eq, Clone, Default)]

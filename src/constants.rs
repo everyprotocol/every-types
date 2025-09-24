@@ -19,6 +19,7 @@ impl Constants {
 	pub const ID_SET_SYSTEM_MAX: u64 = 16;
 	pub const ID_KIND_SYSTEM_MAX: u64 = 16;
 	pub const ID_REL_SYSTEM_MAX: u64 = 16;
+	pub const META_OBJECT_ID_MAX: u64 = 16;
 
 	// General ID constants
 	pub const ID_UNSPECIFIED: u64 = 0;
