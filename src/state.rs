@@ -43,6 +43,7 @@ impl OidRev {
 pub struct Snapshot {
 	pub desc: Descriptor,
 	pub trev: u32,
+	pub fasum: u32,
 	pub mtime: u128,
 	pub elems: Vec<H256>,
 }
