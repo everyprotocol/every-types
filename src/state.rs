@@ -13,11 +13,9 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
 pub struct Sota {
 	pub desc: Descriptor,
-	pub trev: u32,
-	pub fasum: u32,
 	pub owner: Bytes32,
 	pub pos: u128,
-	pub mtime: u128,
+	pub mt: u128,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -42,9 +40,7 @@ impl OidRev {
 #[cfg_attr(feature = "scale", derive(Encode, Decode, TypeInfo, DecodeWithMemTracking))]
 pub struct Snapshot {
 	pub desc: Descriptor,
-	pub trev: u32,
-	pub fasum: u32,
-	pub mtime: u128,
+	pub mt: u128,
 	pub elems: Vec<H256>,
 }
 

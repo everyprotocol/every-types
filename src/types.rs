@@ -119,7 +119,7 @@ pub struct SID {
 }
 
 #[derive(Debug, Display, PartialEq, Eq, Clone, Default)]
-#[display("% kind={kind}, rev={rev}, krev={krev}, srev={srev}, traits={traits:0x}")]
+#[display("{{traits={traits:0x}, rev={rev}, krev={krev}, srev={srev}, kind={kind}, trev={trev}, fsum={fsum}}}")]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "scale", derive(Encode, Decode, TypeInfo, DecodeWithMemTracking))]
 #[cfg_attr(feature = "scale", derive(MaxEncodedLen))]
@@ -129,6 +129,8 @@ pub struct Descriptor {
 	pub krev: u32,
 	pub srev: u32,
 	pub kind: u64,
+	pub trev: u32,
+	pub fsum: u32,
 }
 
 #[derive(Debug, Display, PartialEq, Clone)]
