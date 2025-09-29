@@ -8,7 +8,7 @@ pub enum ElementType {
 	Image = 0x02,
 
 	// Complex Matter
-	Table = 0xE0,
+	Enum = 0xE0,
 	Perm = 0xE1,
 
 	// Meta Object
@@ -77,7 +77,7 @@ impl From<SimpleMatter> for u8 {
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ComplexMatter {
-	Table = 0xE0,
+	Enum = 0xE0,
 	Perm = 0xE1,
 }
 
@@ -116,7 +116,7 @@ impl From<SimpleMatter> for ElementType {
 impl From<ComplexMatter> for ElementType {
 	fn from(c: ComplexMatter) -> Self {
 		match c {
-			ComplexMatter::Table => ElementType::Table,
+			ComplexMatter::Enum => ElementType::Enum,
 			ComplexMatter::Perm => ElementType::Perm,
 		}
 	}
@@ -149,7 +149,7 @@ impl TryFrom<u8> for ElementType {
 		Ok(match x {
 			0x01 => ElementType::Json,
 			0x02 => ElementType::Image,
-			0xE0 => ElementType::Table,
+			0xE0 => ElementType::Enum,
 			0xE1 => ElementType::Perm,
 			0xF1 => ElementType::Set,
 			0xF2 => ElementType::Kind,
@@ -178,7 +178,7 @@ impl TryFrom<u8> for ComplexMatter {
 	type Error = ElementTypeError;
 	fn try_from(x: u8) -> Result<Self, Self::Error> {
 		Ok(match x {
-			0xE0 => ComplexMatter::Table,
+			0xE0 => ComplexMatter::Enum,
 			0xE1 => ComplexMatter::Perm,
 			_ => return Err(ElementTypeError::UnknownComplexMatter(x)),
 		})
