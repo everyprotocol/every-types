@@ -26,28 +26,28 @@ pub enum ElementType {
 }
 
 impl ElementType {
+	pub fn is_simple_matter(self) -> bool {
+		SimpleMatter::test(self as u8)
+	}
+
+	pub fn is_complex_matter(self) -> bool {
+		ComplexMatter::test(self as u8)
+	}
+
 	pub fn is_matter(self) -> bool {
 		(0x01u8..=0xEF).contains(&(self as u8))
 	}
 
-	pub fn is_simple_matter(self) -> bool {
-		(0x01u8..=0xDF).contains(&(self as u8))
-	}
-
-	pub fn is_complex_matter(self) -> bool {
-		(0xE0u8..=0xEF).contains(&(self as u8))
-	}
-
-	pub fn is_object(self) -> bool {
-		(0xF0u8..=0xFE).contains(&(self as u8))
-	}
-
 	pub fn is_meta_object(self) -> bool {
-		(0xF0u8..=0xFD).contains(&(self as u8))
+		MetaObject::test(self as u8)
 	}
 
 	pub fn is_plain_object(self) -> bool {
 		0xFE == (self as u8)
+	}
+
+	pub fn is_object(self) -> bool {
+		(0xF0u8..=0xFE).contains(&(self as u8))
 	}
 
 	pub fn is_info(self) -> bool {
@@ -68,6 +68,12 @@ pub enum SimpleMatter {
 	Image = 0x02,
 }
 
+impl SimpleMatter {
+	pub fn test(e: u8) -> bool {
+		(0x01u8..=0xDF).contains(&e)
+	}
+}
+
 impl From<SimpleMatter> for u8 {
 	fn from(e: SimpleMatter) -> u8 {
 		e as u8
@@ -81,6 +87,12 @@ pub enum ComplexMatter {
 	Perm = 0xE1,
 }
 
+impl ComplexMatter {
+	pub fn test(e: u8) -> bool {
+		(0xE0u8..=0xEF).contains(&e)
+	}
+}
+
 impl From<ComplexMatter> for u8 {
 	fn from(e: ComplexMatter) -> u8 {
 		e as u8
@@ -89,17 +101,22 @@ impl From<ComplexMatter> for u8 {
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq)]
 #[repr(u8)]
-pub enum ObjectKind {
+pub enum MetaObject {
 	Set = 0xF1,
 	Kind = 0xF2,
 	Relation = 0xF3,
 	Value = 0xF4,
 	Unique = 0xF5,
-	Plain = 0xFE,
 }
 
-impl From<ObjectKind> for u8 {
-	fn from(e: ObjectKind) -> u8 {
+impl MetaObject {
+	pub fn test(e: u8) -> bool {
+		(0xF0u8..=0xFD).contains(&e)
+	}
+}
+
+impl From<MetaObject> for u8 {
+	fn from(e: MetaObject) -> u8 {
 		e as u8
 	}
 }
@@ -122,20 +139,19 @@ impl From<ComplexMatter> for ElementType {
 	}
 }
 
-impl From<ObjectKind> for ElementType {
-	fn from(k: ObjectKind) -> Self {
+impl From<MetaObject> for ElementType {
+	fn from(k: MetaObject) -> Self {
 		match k {
-			ObjectKind::Set => ElementType::Set,
-			ObjectKind::Kind => ElementType::Kind,
-			ObjectKind::Relation => ElementType::Relation,
-			ObjectKind::Value => ElementType::Value,
-			ObjectKind::Unique => ElementType::Unique,
-			ObjectKind::Plain => ElementType::Plain,
+			MetaObject::Set => ElementType::Set,
+			MetaObject::Kind => ElementType::Kind,
+			MetaObject::Relation => ElementType::Relation,
+			MetaObject::Value => ElementType::Value,
+			MetaObject::Unique => ElementType::Unique,
 		}
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq)]
 pub enum ElementTypeError {
 	UnknownElementType(u8),
 	UnknownSimpleMatter(u8),
@@ -185,16 +201,15 @@ impl TryFrom<u8> for ComplexMatter {
 	}
 }
 
-impl TryFrom<u8> for ObjectKind {
+impl TryFrom<u8> for MetaObject {
 	type Error = ElementTypeError;
 	fn try_from(x: u8) -> Result<Self, Self::Error> {
 		Ok(match x {
-			0xF1 => ObjectKind::Set,
-			0xF2 => ObjectKind::Kind,
-			0xF3 => ObjectKind::Relation,
-			0xF4 => ObjectKind::Value,
-			0xF5 => ObjectKind::Unique,
-			0xFE => ObjectKind::Plain,
+			0xF1 => MetaObject::Set,
+			0xF2 => MetaObject::Kind,
+			0xF3 => MetaObject::Relation,
+			0xF4 => MetaObject::Value,
+			0xF5 => MetaObject::Unique,
 			_ => return Err(ElementTypeError::UnknownObjectKind(x)),
 		})
 	}
@@ -214,9 +229,9 @@ impl TryFrom<ElementType> for ComplexMatter {
 	}
 }
 
-impl TryFrom<ElementType> for ObjectKind {
+impl TryFrom<ElementType> for MetaObject {
 	type Error = ElementTypeError;
 	fn try_from(e: ElementType) -> Result<Self, Self::Error> {
-		ObjectKind::try_from(u8::from(e))
+		MetaObject::try_from(u8::from(e))
 	}
 }
