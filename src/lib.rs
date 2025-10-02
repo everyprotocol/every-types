@@ -2,7 +2,7 @@
 #![allow(unused)]
 
 pub mod constants;
-pub mod emtys;
+pub mod elem_types;
 pub mod enum_matter;
 pub mod reader;
 pub mod state;
@@ -11,7 +11,7 @@ pub mod traits;
 pub mod types;
 
 pub use constants::Constants;
-pub use emtys::*;
+pub use elem_types::*;
 pub use enum_matter::*;
 pub use traits::*;
 pub use types::*;
