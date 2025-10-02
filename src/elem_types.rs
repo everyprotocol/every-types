@@ -3,9 +3,9 @@ use derive_more::Display;
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq)]
 pub enum ElementTypeError {
-	#[display("unknown discriminant: {0:#04x}")]
+	#[display("unknown discriminant: {_0:#04x}")]
 	UnknownDiscriminant(u8),
-	#[display("{0} is not a MatterForm")]
+	#[display("{_0} is not a MatterForm")]
 	NotAMatterForm(ElementType),
 }
 

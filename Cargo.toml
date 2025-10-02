@@ -19,7 +19,7 @@ serde = { version = "1.0.201", optional = true, default-features = false, featur
     "derive",
 ] }
 derive_more = { version = "2.0.1", default-features = false, features = [
-    "display", "thiserror",
+    "display"
 ] }
 thiserror = { version = "2.0.14", default-features = false, optional = true }
 anyhow = { version = "1", optional = true, default-features = false }
