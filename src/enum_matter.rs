@@ -1,4 +1,4 @@
-use crate::Result;
+use crate::{Result, Vec};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EnumMatterError {
