@@ -1,17 +1,39 @@
 use crate::{Result, Vec};
+use thiserror::Error;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Error, PartialEq, Eq)]
 pub enum EnumMatterError {
+	#[error("invalid EnumMatter header")]
 	BadHeader,
+
+	#[error("bad magic: expected 'ENUM' (45 4E 55 4D), got {0:02X?}")]
 	BadMagic([u8; 4]),
+
+	#[error("unsupported version {0} (expected 1)")]
 	BadVersion(u8),
+
+	#[error("aux count {0} exceeds maximum of 8")]
 	BadAuxCount(u8),
+
+	#[error("column count {0} exceeds maximum of 16")]
 	BadColCount(u8),
+
+	#[error("invalid aux types layout (first N must be >0, remaining must be 0)")]
 	BadAuxTypes,
+
+	#[error("invalid column types layout (first N must be >0, remaining must be 0)")]
 	BadColTypes,
+
+	#[error("invalid body length: expected {expect} bytes, got {got} bytes")]
 	BadBody { expect: usize, got: usize },
+
+	#[error("cell out of bounds at (row={row}, col={col})")]
 	OobCell { row: usize, col: usize },
+
+	#[error("aux index out of bounds: {index}")]
 	OobAux { index: usize },
+
+	#[error("arithmetic overflow")]
 	Overflow,
 }
 
