@@ -75,6 +75,18 @@ impl OID {
 		OID { universe: self.universe, set: Constants::ID_SET_OF_KIND, id: kind }
 	}
 
+	pub fn relation_oid(&self, rel: u64) -> OID {
+		OID { universe: self.universe, set: Constants::ID_SET_OF_REL, id: rel }
+	}
+
+	pub fn value_oid(&self, tok: u64) -> OID {
+		OID { universe: self.universe, set: Constants::ID_SET_OF_VALUE, id: tok }
+	}
+
+	pub fn unique_oid(&self, tok: u64) -> OID {
+		OID { universe: self.universe, set: Constants::ID_SET_OF_UNIQUE, id: tok }
+	}
+
 	pub fn of_set(universe: u64, set: u64) -> OID {
 		OID { universe, set: Constants::ID_SET_OF_SET, id: set }
 	}
@@ -83,12 +95,16 @@ impl OID {
 		OID { universe, set: Constants::ID_SET_OF_KIND, id: kind }
 	}
 
-	pub fn of_value(universe: u64, value: u64) -> OID {
-		OID { universe, set: Constants::ID_SET_OF_VALUE, id: value }
+	pub fn of_relation(universe: u64, rel: u64) -> OID {
+		OID { universe, set: Constants::ID_SET_OF_REL, id: rel }
 	}
 
-	pub fn of_unique(universe: u64, unique: u64) -> OID {
-		OID { universe, set: Constants::ID_SET_OF_UNIQUE, id: unique }
+	pub fn of_value(universe: u64, tok: u64) -> OID {
+		OID { universe, set: Constants::ID_SET_OF_VALUE, id: tok }
+	}
+
+	pub fn of_unique(universe: u64, tok: u64) -> OID {
+		OID { universe, set: Constants::ID_SET_OF_UNIQUE, id: tok }
 	}
 
 	pub fn is_meta_object(&self) -> bool {
