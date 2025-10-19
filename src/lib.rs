@@ -4,6 +4,7 @@
 pub mod constants;
 pub mod elem_types;
 pub mod enum_matter;
+pub mod perm_matter;
 pub mod reader;
 pub mod state;
 pub mod storage;
