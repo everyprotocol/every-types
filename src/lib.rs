@@ -14,5 +14,6 @@ pub mod types;
 pub use constants::Constants;
 pub use elem_types::*;
 pub use enum_matter::*;
+pub use perm_matter::*;
 pub use traits::*;
 pub use types::*;

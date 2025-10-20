@@ -16,7 +16,7 @@ pub struct PermHeader {
 	pub aux: Vec<u8>,               // aux types
 	pub cols: Vec<PermColumn>,      // all columns, natural order
 	pub perm_cols: Vec<PermColumn>, // only permutation columns, order reserved
-	pub rows: u64,                  // product of perm column heights
+	pub rows: usize,                // product of perm column heights
 	pub sum_heights: usize,         // sum of all column heights
 }
 
@@ -25,6 +25,92 @@ impl PermHeader {
 	pub const CELL_SIZE: usize = 32;
 	pub const HEADER_SIZE_MIN: usize = 32;
 	pub const HEADER_SIZE_MAX: usize = 64;
+
+	#[inline]
+	pub fn aux(&self) -> usize {
+		self.aux.len()
+	}
+
+	#[inline]
+	pub fn cols(&self) -> usize {
+		self.cols.len()
+	}
+
+	#[inline]
+	pub fn rows(&self) -> usize {
+		self.rows
+	}
+
+	#[inline]
+	pub fn col_info(&self, col: usize) -> Option<&PermColumn> {
+		self.cols.get(col)
+	}
+
+	#[inline]
+	pub fn header_end(&self) -> usize {
+		if self.cols.is_empty() {
+			Self::HEADER_SIZE_MIN
+		} else {
+			Self::HEADER_SIZE_MAX
+		}
+	}
+
+	#[inline]
+	pub fn aux_begin(&self) -> usize {
+		self.header_end()
+	}
+
+	#[inline]
+	pub fn aux_end(&self) -> usize {
+		self.header_end() + self.aux() * Self::CELL_SIZE
+	}
+
+	#[inline]
+	pub fn col_begin(&self) -> usize {
+		self.aux_begin()
+	}
+
+	#[inline]
+	pub fn col_end(&self) -> usize {
+		self.aux_begin() + self.sum_heights * Self::CELL_SIZE
+	}
+
+	pub fn row_to_indexes(&self, row: usize) -> Result<Vec<usize>, PermMatterError> {
+		if row >= self.rows {
+			return Err(PermMatterError::Overflow);
+		}
+		let mut idxs = Vec::with_capacity(self.cols.len());
+		let mut r = row;
+		for (c, ci) in self.cols.iter().enumerate().rev() {
+			if ci.perm_col {
+				let h = ci.col_height;
+				idxs[c] = r % h;
+				r /= h;
+			} else {
+				idxs[c] = row;
+			}
+		}
+		Ok(idxs)
+	}
+
+	pub fn row_to_index(&self, row: usize, col: usize) -> Result<usize, PermMatterError> {
+		if row >= self.rows || col >= self.cols.len() {
+			return Err(PermMatterError::Overflow);
+		}
+
+		let mut r = row;
+		let mut idx = 0;
+		for (c, ci) in self.cols.iter().enumerate().rev() {
+			if ci.perm_col {
+				let h = ci.col_height;
+				idx = r % h;
+				r /= h;
+			} else {
+				idx = row;
+			}
+		}
+		Ok(idx)
+	}
 
 	pub fn from(blob: &[u8]) -> Result<Self, PermMatterError> {
 		if blob.len() < Self::HEADER_SIZE_MIN {
@@ -74,9 +160,16 @@ impl PermHeader {
 			if blob.len() < Self::HEADER_SIZE_MAX {
 				return Err(PermMatterError::BadHeader);
 			}
-			for i in 0..(cols_cnt as usize) {
+			let cols_cnt = cols_cnt as usize;
+			for i in 0..cols_cnt {
 				let h = u16::from_le_bytes(blob[32 + i * 2..34 + i * 2].try_into().unwrap());
 				col_heights.push(h);
+			}
+			for i in cols_cnt..16 {
+				let h = u16::from_le_bytes(blob[32 + i * 2..34 + i * 2].try_into().unwrap());
+				if h != 0 {
+					return Err(PermMatterError::BadColumnHeight { col: i });
+				}
 			}
 		}
 
@@ -84,7 +177,7 @@ impl PermHeader {
 
 		let mut col_offset = 0usize;
 		let mut perm_idx = 0u8;
-		let mut rows = 1u64;
+		let mut rows = 1usize;
 		let mut sum_heights = 0usize;
 		let mut cols = Vec::new();
 		for i in 0..(cols_cnt as usize) {
@@ -100,86 +193,13 @@ impl PermHeader {
 			};
 			perm_idx += if perm_col { 1 } else { 0 };
 			col_offset += col_height;
-			rows.checked_mul(col_height as u64).ok_or(PermMatterError::Overflow)?;
+			rows.checked_mul(col_height).ok_or(PermMatterError::Overflow)?;
 			sum_heights.checked_add(col_height).ok_or(PermMatterError::Overflow)?;
 			cols.push(col);
 		}
 		let perm_cols: Vec<PermColumn> =
 			cols.iter().filter(|c| c.perm_col).map(|c| c.clone()).collect();
 		Ok(Self { aux, cols, perm_cols, rows, sum_heights })
-	}
-
-	#[inline]
-	pub fn aux(&self) -> usize {
-		self.aux.len()
-	}
-
-	#[inline]
-	pub fn cols(&self) -> usize {
-		self.cols.len()
-	}
-
-	#[inline]
-	pub fn rows(&self) -> u64 {
-		self.rows
-	}
-
-	#[inline]
-	pub fn col_info(&self, col: usize) -> Option<&PermColumn> {
-		self.cols.get(col)
-	}
-
-	#[inline]
-	pub fn size(&self) -> usize {
-		if self.cols.is_empty() {
-			Self::HEADER_SIZE_MIN
-		} else {
-			Self::HEADER_SIZE_MAX
-		}
-	}
-
-	#[inline]
-	pub fn aux_begin(&self) -> usize {
-		self.size()
-	}
-
-	#[inline]
-	pub fn aux_end(&self) -> usize {
-		self.size() + self.aux() * Self::CELL_SIZE
-	}
-
-	#[inline]
-	pub fn col_begin(&self) -> usize {
-		self.aux_begin()
-	}
-
-	#[inline]
-	pub fn col_end(&self) -> usize {
-		self.aux_begin() + self.sum_heights * Self::CELL_SIZE
-	}
-
-	pub fn calc_col_index(&self, row: u64) -> Result<Vec<usize>, PermMatterError> {
-		let perm_idxs: Vec<usize> = self.calc_perm_col_index(row)?;
-		let idxs = self
-			.cols
-			.iter()
-			.map(|c| if c.perm_col { perm_idxs[c.perm_idx as usize] } else { row as usize })
-			.collect();
-		Ok(idxs)
-	}
-
-	fn calc_perm_col_index(&self, row: u64) -> Result<Vec<usize>, PermMatterError> {
-		if row >= self.rows {
-			return Err(PermMatterError::Overflow);
-		}
-		let mut idxs = Vec::with_capacity(self.perm_cols.len());
-		let mut r = row;
-		for (i, c) in self.perm_cols.iter().enumerate().rev() {
-			let h = c.col_height as u64;
-			idxs[i] = (r % h) as usize;
-			r /= h;
-		}
-		Ok(idxs)
 	}
 }
 
@@ -204,6 +224,21 @@ impl PermMatter {
 		Ok(Self { header, aux_data, col_data })
 	}
 
+	#[inline]
+	pub fn aux(&self) -> usize {
+		self.header.aux.len()
+	}
+
+	#[inline]
+	pub fn cols(&self) -> usize {
+		self.header.cols.len()
+	}
+
+	#[inline]
+	pub fn rows(&self) -> usize {
+		self.header.rows
+	}
+
 	pub fn aux_at(&self, index: usize) -> Result<&[u8; 32], PermMatterError> {
 		if index >= self.header.aux() {
 			return Err(PermMatterError::OobAux { index });
@@ -219,14 +254,9 @@ impl PermMatter {
 		Ok(s)
 	}
 
-	pub fn cell_at(&self, col: usize, index: usize) -> Result<&[u8; 32], PermMatterError> {
-		let Some(ci) = self.header.col_info(col) else {
-			return Err(PermMatterError::OobCell { col, index });
-		};
-		if index >= ci.col_height {
-			return Err(PermMatterError::OobCell { col, index });
-		}
-		let offset = (ci.col_offset + index) * PermHeader::CELL_SIZE;
+	pub fn cell_at(&self, row: usize, col: usize) -> Result<&[u8; 32], PermMatterError> {
+		let index = self.header.row_to_index(row, col)?;
+		let offset = (self.header.cols[col].col_offset + index) * PermHeader::CELL_SIZE;
 		let end = offset + PermHeader::CELL_SIZE;
 		let s: &[u8; 32] = self
 			.col_data
@@ -237,8 +267,8 @@ impl PermMatter {
 		Ok(s)
 	}
 
-	pub fn row_at(&self, row: u64) -> Result<Vec<&[u8; 32]>, PermMatterError> {
-		let idxs = self.header.calc_col_index(row)?;
+	pub fn row_at(&self, row: usize) -> Result<Vec<&[u8; 32]>, PermMatterError> {
+		let idxs = self.header.row_to_indexes(row)?;
 		let mut out = Vec::with_capacity(idxs.len());
 		for (col, index) in idxs.into_iter().enumerate() {
 			let ci = self.header.col_info(col).unwrap();
@@ -285,8 +315,8 @@ pub enum PermMatterError {
 	// Column heights block (present only if cols>0)
 	#[error("column heights block too short (need {need} bytes, got {got})")]
 	BadHeightsBlock { need: usize, got: usize },
-	#[error("column {col} has zero height")]
-	ZeroColumnHeight { col: usize },
+	#[error("column {col} has bad height")]
+	BadColumnHeight { col: usize },
 
 	// Body sizing
 	#[error("invalid body length: expected {expect} bytes, got {got} bytes")]
