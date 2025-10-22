@@ -124,51 +124,61 @@ impl EnumMatterHeader {
 #[derive(Debug, Clone)]
 pub struct EnumMatter {
 	pub header: EnumMatterHeader,
-	pub body: Vec<u8>, // len = (aux + rows*cols) * 32
+	pub aux_data: Vec<u8>, // len = aux * 32
+	pub row_data: Vec<u8>, // len = rows * cols * 32
 }
 
 impl EnumMatter {
 	pub fn from(blob: &[u8]) -> Result<Self, EnumMatterError> {
 		let header = EnumMatterHeader::from(blob)?;
-		let aux = header.aux();
-		let cols = header.cols();
-		let rows = header.rows();
-
-		// total 32-byte slots in body = aux section + cell section
-		let cell_slots = cols.checked_mul(rows).ok_or(EnumMatterError::Overflow)?;
-		let total_slots = aux.checked_add(cell_slots).ok_or(EnumMatterError::Overflow)?;
-		let expect_len = total_slots
+		let aux_data_size = header
+			.aux()
 			.checked_mul(EnumMatterHeader::CELL_SIZE)
 			.ok_or(EnumMatterError::Overflow)?;
-		let got_len = blob
-			.len()
-			.checked_sub(EnumMatterHeader::HEADER_SIZE)
-			.ok_or(EnumMatterError::BadHeader)?;
+		let row_data_size = header
+			.cols()
+			.checked_mul(header.rows())
+			.ok_or(EnumMatterError::Overflow)?
+			.checked_mul(EnumMatterHeader::CELL_SIZE)
+			.ok_or(EnumMatterError::Overflow)?;
 
-		if got_len != expect_len {
-			return Err(EnumMatterError::BadBody { expect: expect_len, got: got_len });
+		let expect_len = EnumMatterHeader::HEADER_SIZE
+			.checked_add(aux_data_size)
+			.ok_or(EnumMatterError::Overflow)?
+			.checked_add(row_data_size)
+			.ok_or(EnumMatterError::Overflow)?;
+
+		let blob_len = blob.len();
+		if blob_len != expect_len {
+			return Err(EnumMatterError::BadBody { expect: expect_len, got: blob_len });
 		}
 
-		let body = blob[EnumMatterHeader::HEADER_SIZE..EnumMatterHeader::HEADER_SIZE + expect_len]
-			.to_vec();
+		let aux_offset = EnumMatterHeader::HEADER_SIZE;
+		let aux_end = aux_offset + aux_data_size;
+		let aux_data = blob[aux_offset..aux_end].to_vec();
 
-		Ok(Self { header, body })
+		let row_offset = aux_end;
+		let row_end = row_offset + row_data_size;
+		let row_data = blob[row_offset..row_end].to_vec();
+
+		Ok(Self { header, aux_data, row_data })
 	}
 
 	#[inline]
 	pub fn aux(&self) -> usize {
 		self.header.aux()
 	}
+
 	#[inline]
 	pub fn cols(&self) -> usize {
 		self.header.cols()
 	}
+
 	#[inline]
 	pub fn rows(&self) -> usize {
 		self.header.rows()
 	}
 
-	/// Returns a 32-byte AUX entry at `index` (0-based).
 	pub fn aux_at(&self, index: usize) -> Result<&[u8; 32], EnumMatterError> {
 		let aux = self.aux();
 		if index >= aux {
@@ -178,9 +188,8 @@ impl EnumMatter {
 			.checked_mul(EnumMatterHeader::CELL_SIZE)
 			.ok_or(EnumMatterError::Overflow)?;
 		let end = offset + EnumMatterHeader::CELL_SIZE;
-		// body starts right after header; aux occupies the first `aux * 32` bytes
 		let slice: &[u8; 32] = self
-			.body
+			.aux_data
 			.get(offset..end)
 			.ok_or(EnumMatterError::OobAux { index })?
 			.try_into()
@@ -188,7 +197,6 @@ impl EnumMatter {
 		Ok(slice)
 	}
 
-	/// Returns a 32-byte cell at (row, col), 0-based.
 	pub fn cell_at(&self, row: usize, col: usize) -> Result<&[u8; 32], EnumMatterError> {
 		let rows = self.rows();
 		let cols = self.cols();
@@ -196,33 +204,49 @@ impl EnumMatter {
 			return Err(EnumMatterError::OobCell { row, col });
 		}
 
-		let aux_bytes = self
-			.aux()
-			.checked_mul(EnumMatterHeader::CELL_SIZE)
-			.ok_or(EnumMatterError::Overflow)?;
-
-		let idx_in_cells = row
+		let offset = row
 			.checked_mul(cols)
 			.ok_or(EnumMatterError::Overflow)?
 			.checked_add(col)
+			.ok_or(EnumMatterError::Overflow)?
+			.checked_mul(EnumMatterHeader::CELL_SIZE)
 			.ok_or(EnumMatterError::Overflow)?;
-
-		let cell_offset = aux_bytes
-			.checked_add(
-				idx_in_cells
-					.checked_mul(EnumMatterHeader::CELL_SIZE)
-					.ok_or(EnumMatterError::Overflow)?,
-			)
-			.ok_or(EnumMatterError::Overflow)?;
-
-		let end = cell_offset + EnumMatterHeader::CELL_SIZE;
+		let end = offset + EnumMatterHeader::CELL_SIZE;
 
 		let slice: &[u8; 32] = self
-			.body
-			.get(cell_offset..end)
+			.row_data
+			.get(offset..end)
 			.ok_or(EnumMatterError::OobCell { row, col })?
 			.try_into()
 			.unwrap();
 		Ok(slice)
+	}
+
+	pub fn row_at(&self, row: usize) -> Result<Vec<&[u8; 32]>, EnumMatterError> {
+		let rows = self.rows();
+		let cols = self.cols();
+		if row >= rows {
+			return Err(EnumMatterError::OobCell { row, col: 0 });
+		}
+		let mut offset = row
+			.checked_mul(cols)
+			.ok_or(EnumMatterError::Overflow)?
+			.checked_mul(EnumMatterHeader::CELL_SIZE)
+			.ok_or(EnumMatterError::Overflow)?;
+		let mut out = Vec::with_capacity(cols);
+		for col in 0..cols {
+			let end = offset
+				.checked_add(EnumMatterHeader::CELL_SIZE)
+				.ok_or(EnumMatterError::Overflow)?;
+			let cell: &[u8; 32] = self
+				.row_data
+				.get(offset..end)
+				.ok_or(EnumMatterError::OobCell { row, col })?
+				.try_into()
+				.unwrap();
+			offset = end;
+			out.push(cell);
+		}
+		Ok(out)
 	}
 }
