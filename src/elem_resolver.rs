@@ -34,6 +34,12 @@ pub enum ElementError {
 	RowOutOfBounds,
 	#[error("out of col bounds")]
 	ColOutOfBounds,
+	#[error("invalid mut bits")]
+	InvalidMutBits,
+	#[error("result length mismatch")]
+	ResultLengthMismatch,
+	#[error("invalid element count")]
+	InvalidElementLength,
 }
 
 #[repr(u8)]
@@ -76,7 +82,7 @@ impl ElementFlags {
 		let lo8 = (v & 0xFF) as u8;
 		Ok(Self {
 			mut_bits: ((v >> 16) & 0xFFFF) as u16,
-			here_coll: (lo8 & 0b1000_0000) != 0,
+			here_coll: (lo8 & 0b0010_0000) != 0,
 			custom_picker: (lo8 & 0b0001_0000) != 0,
 			pick_row_from: ElementSource::from_nibble(lo8 & 0x0F)?,
 		})
@@ -84,7 +90,7 @@ impl ElementFlags {
 
 	pub fn encode(&self) -> u32 {
 		((self.mut_bits as u32) << 16) |
-			(u32::from(self.here_coll) << 7) |
+			(u32::from(self.here_coll) << 5) |
 			(u32::from(self.custom_picker) << 4) |
 			(self.pick_row_from as u32)
 	}
@@ -177,6 +183,49 @@ impl ElementResolver {
 			out.push(elem);
 		}
 		Ok(out)
+	}
+
+	pub fn resolve_update<E, S: StateReader<E>>(
+		&self,
+		state: &mut S,
+		oid: &OID,
+		desc: &Descriptor,
+		mut pre: Vec<Bytes32>,
+	) -> Result<Vec<Bytes32>, ElementError> {
+		let n = if pre.len() > 16 {
+			return Err(ElementError::InvalidElementLength);
+		} else {
+			pre.len()
+		};
+		let mut_bits = {
+			let mask: u16 = if n < 16 { 0xFFFFu16 << (16 - n) } else { 0xFFFF };
+			let mut_bits = self.flags.mut_bits & mask;
+			if self.flags.mut_bits != mut_bits {
+				return Err(ElementError::InvalidMutBits);
+			}
+			mut_bits
+		};
+		let resolved = self.resolve(state, oid, desc)?;
+		if mut_bits == 0 {
+			// full replace
+			if resolved.len() != pre.len() {
+				return Err(ElementError::ResultLengthMismatch);
+			}
+			return Ok(resolved);
+		} else {
+			// apply partial replace
+			if resolved.len() != mut_bits.count_ones() as usize {
+				return Err(ElementError::ResultLengthMismatch);
+			}
+			let mut j = 0usize;
+			for i in 0..n {
+				if (mut_bits & (1u16 << (15 - i))) != 0 {
+					pre[i] = resolved[j];
+					j += 1;
+				}
+			}
+			Ok(pre)
+		}
 	}
 
 	fn row_from_source<E, S: StateReader<E>>(
