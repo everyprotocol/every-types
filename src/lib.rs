@@ -2,7 +2,7 @@
 #![allow(unused)]
 
 pub mod constants;
-pub mod elem_resolver;
+pub mod elem_picker;
 pub mod elem_types;
 pub mod enum_matter;
 pub mod perm_matter;
@@ -13,7 +13,7 @@ pub mod traits;
 pub mod types;
 
 pub use constants::Constants;
-pub use elem_resolver::*;
+pub use elem_picker::*;
 pub use elem_types::*;
 pub use enum_matter::*;
 pub use perm_matter::*;
